@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>贪吃蛇</title>
+	<!--zepto-->
+	<script src="zepto-detect-touch-gesture.js"></script>
+  <style type="text/css">
+    #c1 {
+      background: #ddd;
+      display: block;
+    }
+
+    #label {
+      float: left;
+      margin-left: 300px;
+      margin-right: 50px;
+    }
+
+    #gameover {
+      background-color: rgba(0, 0, 0, .8);
+      display: none;
+      position: fixed;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      text-align: center;
+      color:#fff;
+    }
+
+    #information {
+      font-size: 40px;
+    }
+
+    #restart {
+      cursor: pointer;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+<div id="gameover">
+  <p id="information">游戏结束</p>
+
+  <p id="restart">重新开始</p>
+</div>
+<div id="label">得分：<span id="scoreLabel">0</span><br/><br/>
+  <button id="btnStart">开始游戏</button>
+</div>
+<canvas id="c1"></canvas>
+</body>
+<script type="text/javascript">
+  var canvasSize = 300;
+  c1.width = canvasSize;
+  c1.height = canvasSize;
+  var ctx = c1.getContext("2d");
+  //  ctx.fillStyle = "red";
+  var X = 200, Y = 200;
+  var LENGTH = 1;
+  var SIZE = 10;
+  var cells = [];
+  var timer = null;
+  var food = null;
+  var score = 0;
+  var gameState = 0;
+	var INTERVAL=2000;
+  btnStart.onclick = function () {
+    init();
+  }
+  function init() {
+    gameState = 1;
+    for (var i = 0; i < LENGTH; i++) {
+      cells.push(new Cell(X - i * SIZE, Y));
+    }
+    createFood();
+    autoMove(1, 0);
+//    updateView();
+
+  }
+  //  init();
+  function canEatFood() {
+    if (parseInt(cells[0].x) == parseInt(food.x) && parseInt(cells[0].y) == parseInt(food.y)) {
+      return true;
+    }
+    return false;
+  }
+  function eatFood() {
+    score++;
+    createFood();
+    var lastCell = cells[cells.length - 1];
+//    console.log(lastCell);
+    cells.push(new Cell(lastCell.x - lastCell.xDirection * 10, lastCell.y - lastCell.yDirection * 10));
+  }
+  document.onkeyup = function (e) {
+    //console.log(e.keyCode);
+    var xDirect = cells[0].xDirection;
+    var yDirect = cells[0].yDirection;
+    switch (e.keyCode) {
+      case 37:
+        if (cells[0].xDirection === 0) {
+          xDirect = -1;
+          yDirect = 0;
+        }
+        break;
+      case 38:
+        if (cells[0].yDirection === 0) {
+          xDirect = 0;
+          yDirect = -1;
+        }
+        break;
+      case 39:
+        if (cells[0].xDirection === 0) {
+          xDirect = 1;
+          yDirect = 0;
+        }
+        break;
+      case 40:
+        if (cells[0].yDirection === 0) {
+          xDirect = 0;
+          yDirect = 1;
+        }
+        break;
+    }
+		//加入移动端兼容
+		$("#c1").swipeLeft(function(){
+			if (cells[0].xDirection === 0) {
+          xDirect = -1;
+          yDirect = 0;
+        }
+			console.log("swipeLeft");
+		});
+		$("#c1").swipeUp(function(){
+			if (cells[0].yDirection === 0) {
+          xDirect = 0;
+          yDirect = -1;
+        }
+			console.log("swipeUp");
+		});
+		$("#c1").swipeRight(function(){
+			if (cells[0].xDirection === 0) {
+          xDirect = 1;
+          yDirect = 0;
+        }
+			console.log("swipeRight");
+		});
+		$("#c1").swipeDown(function(){
+			if (cells[0].yDirection === 0) {
+          xDirect = 0;
+          yDirect = 1;
+        }
+			console.log("swipeDown");
+		});
+    clearInterval(timer);
+    autoMove(xDirect, yDirect);
+  }
+  function createFood() {
+    food = new Cell(Math.floor((Math.random() * canvasSize / 10)) * 10, Math.floor((Math.random() * canvasSize / 10)) * 10);
+    while (!isFoodOk()) {
+      food = new Cell(Math.floor((Math.random() * canvasSize / 10)) * 10, Math.floor((Math.random() * canvasSize / 10)) * 10);
+    }
+//    console.log(food.x);
+//    console.log(food.y);
+  }
+  function isFoodOk() {
+    for (var j = 0; j < cells.length; j++) {
+      if (food.x == cells[j].x && food.y == cells[j].y) {
+        return false;
+      }
+      return true;
+    }
+  }
+  function autoMove(xDirect, yDirect) {
+    timer = setInterval(function () {
+      ctx.clearRect(0, 0, canvasSize, canvasSize);
+      for (var j = cells.length - 1; j > 0; j--) {
+        cells[j].x = cells[j - 1].x;
+        cells[j].y = cells[j - 1].y;
+        cells[j].xDirection = cells[j - 1].xDirection;
+        cells[j].yDirection = cells[j - 1].yDirection;
+      }
+      cells[0].move(xDirect, yDirect);
+      if (canEatFood()) {
+        eatFood();
+//        console.log('ceshi');
+      }
+      if (isGameover()) {
+        gameState = 2;
+      }
+      updateView();
+    }, INTERVAL)
+
+  }
+  function isGameover() {
+    for (var i = 0; i < cells.length; i++) {
+      if (cells[0].x == cells[i].x && cells[0].y == cells[i].y && i > 0) {
+        console.log('判断1');
+        return true;
+      }
+      if (cells[0].x < 0 || cells[0].x >= canvasSize || cells[0].y < 0 || cells[0].y >= canvasSize) {
+        console.log('判断2');
+        return true;
+      }
+    }
+    return false;
+  }
+  function updateView() {
+    if (gameState == 2) {
+      gameover.style.display = 'block';
+      clearInterval(timer);
+      timer = null;
+    }
+    else {
+      for (var i = 0; i < cells.length; i++) {
+        ctx.fillStyle = cells[i].color;
+        ctx.fillRect(cells[i].x, cells[i].y, SIZE, SIZE);
+        ctx.fillRect(food.x, food.y, SIZE, SIZE);
+      }
+      scoreLabel.innerHTML = score;
+    }
+  }
+  function Cell(x, y) {
+    this.x = x;
+    this.y = y;
+    this.xDirection = 0;
+    this.yDirection = 0;
+    this.color = randColor(255, 255, 255);
+    ctx.fillRect(this.x, this.y, 10, 10);
+    this.move = function (xDirect, yDirect) {
+      this.xDirection = xDirect;
+      this.yDirection = yDirect;
+      this.x += this.xDirection * 10;
+      this.y += this.yDirection * 10;
+    }
+  }
+  restart.onclick = function () {
+    cells=[];
+    score=0;
+    init();
+    gameover.style.display='none';
+//    gameState=1;
+  }
+  function randColor(red, green, blue) {
+    var r = Math.floor(Math.random() * red);
+    var g = Math.floor(Math.random() * green);
+    var b = Math.floor(Math.random() * blue);
+    return `rgb(${r},${g},${b})`;
+  }
+</script>
+</html>
